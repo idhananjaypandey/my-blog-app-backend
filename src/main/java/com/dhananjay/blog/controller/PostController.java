@@ -34,6 +34,13 @@ public class PostController {
         return ResponseEntity.status(201).body(response);
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<List<PostResponse>> getMyPosts(Principal principal) {
+        return ResponseEntity.ok(
+                postService.getMyPosts(principal.getName())
+        );
+    }
+
     // ✅ UPDATE POST
     @PutMapping("/{id}")
     public ResponseEntity<PostResponse> update(@PathVariable Long id,

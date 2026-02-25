@@ -1,15 +1,13 @@
-package com.dhananjay.blog.config;
+package com.dhananjay.blog.security;
 
-import com.dhananjay.blog.security.CustomUserDetailsService;
-import com.dhananjay.blog.security.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
@@ -18,7 +16,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 @Component
-public class JwtAuthenticationFilter extends OncePerRequestFilter {
+public class JwtFilter extends OncePerRequestFilter {
 
     @Autowired
     private JwtUtil jwtUtil;
@@ -27,32 +25,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private CustomUserDetailsService userDetailsService;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain)
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain)
             throws ServletException, IOException {
 
-        // 🔥 IMPORTANT: Skip auth endpoints
-        if (request.getServletPath().startsWith("/api/auth")) {
-            filterChain.doFilter(request, response);
-            return;
+        String authHeader = request.getHeader("Authorization");
+        String token = null;
+        String email = null;
+
+        // 🔥 Extract token
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
+            email = jwtUtil.extractUsername(token);
         }
 
-        String header = request.getHeader("Authorization");
+        // 🔥 Validate and set authentication
+        if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-        if (header == null || !header.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        String token = header.substring(7);
-        String email = jwtUtil.extractEmail(token);
-
-        if (email != null &&
-                SecurityContextHolder.getContext().getAuthentication() == null) {
-
-            UserDetails userDetails =
-                    userDetailsService.loadUserByUsername(email);
+            UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
             if (jwtUtil.validateToken(token, userDetails)) {
 

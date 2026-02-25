@@ -87,6 +87,22 @@ public class PostService {
         );
     }
 
+    public List<PostResponse> getMyPosts(String email) {
+
+        return postRepository
+                .findByUserEmailOrderByCreatedAtDesc(email)
+                .stream()
+                .map(post -> new PostResponse(
+                        post.getId(),
+                        post.getTitle(),
+                        post.getContent(),
+                        post.getUser().getName(),
+                        post.getUser().getEmail(),
+                        post.getCreatedAt()
+                ))
+                .toList();
+    }
+
 
     // ✅ DELETE POST
     public String deletePost(Long id, String email) {
