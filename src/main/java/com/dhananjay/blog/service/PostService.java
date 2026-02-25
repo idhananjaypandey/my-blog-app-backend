@@ -1,6 +1,7 @@
 package com.dhananjay.blog.service;
 
 import com.dhananjay.blog.dto.PostRequest;
+import com.dhananjay.blog.dto.PostResponse;
 import com.dhananjay.blog.entity.Post;
 import com.dhananjay.blog.entity.User;
 import com.dhananjay.blog.repository.PostRepository;
@@ -9,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class PostService {
@@ -21,7 +23,7 @@ public class PostService {
 
 
     // ✅ CREATE POST
-    public Post createPost(PostRequest request, String email) {
+    public PostResponse createPost(PostRequest request, String email) {
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -31,20 +33,37 @@ public class PostService {
         post.setContent(request.getContent());
         post.setUser(user);
 
-        // createdAt will be auto-set by @PrePersist in entity
+        Post saved = postRepository.save(post);
 
-        return postRepository.save(post);
+        return new PostResponse(
+                saved.getId(),
+                saved.getTitle(),
+                saved.getContent(),
+                user.getName(),
+                user.getEmail(),
+                saved.getCreatedAt()
+        );
     }
 
 
     // ✅ GET ALL POSTS (Newest First 🔥)
-    public List<Post> getAllPosts() {
-        return postRepository.findAllByOrderByCreatedAtDesc();
+    public List<PostResponse> getAllPosts() {
+        return postRepository.findAllByOrderByCreatedAtDesc()
+                .stream()
+                .map(post -> new PostResponse(
+                        post.getId(),
+                        post.getTitle(),
+                        post.getContent(),
+                        post.getUser().getName(),
+                        post.getUser().getEmail(),
+                        post.getCreatedAt()
+                ))
+                .collect(Collectors.toList());
     }
 
 
     // ✅ UPDATE POST
-    public Post updatePost(Long id, PostRequest request, String email) {
+    public PostResponse updatePost(Long id, PostRequest request, String email) {
 
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Post not found"));
@@ -56,7 +75,16 @@ public class PostService {
         post.setTitle(request.getTitle());
         post.setContent(request.getContent());
 
-        return postRepository.save(post);
+        Post updated = postRepository.save(post);
+
+        return new PostResponse(
+                updated.getId(),
+                updated.getTitle(),
+                updated.getContent(),
+                updated.getUser().getName(),
+                updated.getUser().getEmail(),
+                updated.getCreatedAt()
+        );
     }
 
 
